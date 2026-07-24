@@ -1,7 +1,9 @@
 -- =============================================
--- Pet ESP Only – Fixed Stuck GUI + Q Toggle
+-- Pet ESP – Cosmic Unicorn Priority + Q Toggle
 -- Shows: SPECIES | MUTATION
 -- Toggle: Press Q to ON/OFF
+-- RULE: If Unicorn WITH Cosmic Mutation exists → ONLY show Cosmic Unicorns; hide all others
+--       If NO Cosmic Unicorn → show ALL pets normally
 -- =============================================
 
 -- Services
@@ -115,13 +117,31 @@ local function RemovePetESP(PetModel)
 end
 
 -- =====================
--- MAIN UPDATE LOOP (ALWAYS UPDATES POSITION)
+-- HELPER: CHECK FOR COSMIC UNICORNS
+-- =====================
+local function HasCosmicUnicorn()
+    for PetModel, _ in pairs(ESP_Objects) do
+        if PetModel and PetModel.Parent then
+            local Species = PetModel:GetAttribute("Species") or "Unknown"
+            local Mutation = PetModel:GetAttribute("Mutation") or "None"
+            -- Match exactly: Species = Unicorn AND Mutation = Cosmic
+            if Species == "Unicorn" and Mutation == "Cosmic" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- =====================
+-- MAIN UPDATE LOOP
 -- =====================
 RunService.RenderStepped:Connect(function()
     local CameraPos = Camera.CFrame.Position
+    local FilterToCosmic = HasCosmicUnicorn() -- Only filter if Cosmic Unicorn exists
 
     for PetModel, ESP in pairs(ESP_Objects) do
-        -- Always hide first if disabled / invalid
+        -- Hide if disabled or invalid
         if not ESP_Enabled or not PetModel or not PetModel.Parent then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -135,6 +155,27 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
+        -- =============================================
+        -- COSMIC UNICORN FILTER LOGIC
+        -- =============================================
+        if FilterToCosmic then
+            local Species = PetModel:GetAttribute("Species") or "Unknown"
+            local Mutation = PetModel:GetAttribute("Mutation") or "None"
+            -- Hide everything EXCEPT Cosmic Unicorns
+            if not (Species == "Unicorn" and Mutation == "Cosmic") then
+                for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
+                ESP.PanelBG.Visible = false
+                ESP.PanelBorder.Visible = false
+                for _, Row in ipairs(ESP.Rows) do
+                    Row.BG.Visible = false
+                    Row.Label.Visible = false
+                    Row.Value.Visible = false
+                end
+                continue
+            end
+        end
+
+        -- Get position & distance
         local RootPart = PetModel:FindFirstChild("HumanoidRootPart") 
                       or PetModel:FindFirstChildWhichIsA("BasePart")
         if not RootPart then
@@ -146,7 +187,7 @@ RunService.RenderStepped:Connect(function()
         local Distance = (CameraPos - RootPart.Position).Magnitude
         local ScreenPos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
 
-        -- Hide if too far or off screen
+        -- Hide if too far or off-screen
         if Distance > ESP_Config.MaxDistance or not OnScreen then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -159,14 +200,14 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- GET DATA
+        -- Get pet data
         local OwnerId = PetModel:GetAttribute("OwnerUserId")
         local IsOwned = OwnerId == LocalPlayer.UserId
         local BoxColor = IsOwned and ESP_Config.OwnPetColor or ESP_Config.OtherPetColor
         local Species = PetModel:GetAttribute("Species") or "Unknown"
         local Mutation = PetModel:GetAttribute("Mutation") or "None"
 
-        -- DRAW BOX (ALWAYS UPDATE POSITION!)
+        -- Draw box
         local BoxSize = 2.5 * ESP_Config.CornerSize
         local Corners = {
             {Vector2.new(ScreenPos.X - BoxSize, ScreenPos.Y - BoxSize), Vector2.new(ScreenPos.X + BoxSize, ScreenPos.Y - BoxSize)},
@@ -181,7 +222,7 @@ RunService.RenderStepped:Connect(function()
             ESP.Corners[i].Visible = true
         end
 
-        -- DRAW PANEL (ALWAYS UPDATE POSITION!)
+        -- Draw info panel
         local PanelX = ScreenPos.X - ESP_Config.PanelWidth / 2
         local PanelY = ScreenPos.Y + 20
         local RowY = PanelY + 4
