@@ -259,7 +259,7 @@ end)
 -- ✅ ORIGINAL E TOGGLE (UNCHANGED)
 UserInputService.InputBegan:Connect(function(Input, GP)
     if GP then return end
-    if Input.KeyCode == Enum.KeyCode.E then
+    if Input.KeyCode == Enum.KeyCode.C then
         ESP_Enabled = not ESP_Enabled
     end
 end)
