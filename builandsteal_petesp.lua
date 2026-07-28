@@ -1,21 +1,13 @@
--- =============================================
--- Pet ESP – Cosmic Unicorn Priority + Q Toggle + MPS DISPLAY
--- Shows: SPECIES | MUTATION | MPS
--- Toggle: Press Q to ON/OFF
--- RULE: If Unicorn WITH Cosmic Mutation exists → ONLY show Cosmic Unicorns; hide all others
---       If NO Cosmic Unicorn → show ALL pets normally
--- =============================================
 
--- Services
+
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- =====================
--- CONFIG (EDIT THESE)
--- =====================
+
 local ESP_Config = {
     MaxDistance = 9999,
     BoxThickness = 1.5,
@@ -39,15 +31,11 @@ local ESP_Config = {
     ValueColor = Color3.new(1,1,1)
 }
 
--- =====================
--- INTERNAL STATE
--- =====================
+
 local ESP_Objects = {}
 local ESP_Enabled = true
 
--- =====================
--- DRAWING HELPERS
--- =====================
+
 local function DrawLine(Color, Thickness)
     local Line = Drawing.new("Line")
     Line.Visible = false
@@ -80,9 +68,7 @@ local function DrawSquare(Color, Thickness, Filled, Transparency)
     return Square
 end
 
--- =====================
--- ESP MANAGEMENT
--- =====================
+
 local function AddPetESP(PetModel)
     if ESP_Objects[PetModel] then return end
 
@@ -93,7 +79,7 @@ local function AddPetESP(PetModel)
     ESP.PanelBG = DrawSquare(Color3.fromRGB(12,12,18), 1, true, 0.35)
     ESP.PanelBorder = DrawSquare(Color3.fromRGB(80,80,120), 1, false, 0.7)
     ESP.Rows = {}
-    -- 3 rows now: Species / Mutation / MPS
+   
     for i = 1, 3 do
         ESP.Rows[i] = {
             BG = DrawSquare(),
@@ -118,11 +104,9 @@ local function RemovePetESP(PetModel)
     end
     ESP_Objects[PetModel] = nil
 end
--- =====================
--- HELPER: EXTRACT PET DATA (FIXED MPS READER)
--- =====================
+
 local function GetPetData(PetModel)
-    -- ✅ 1. READ ATTRIBUTES FIRST (FAST + ALWAYS WORKS)
+   
     local Species = PetModel:GetAttribute("Species") or PetModel.Name or "Unknown"
     local Mutation = PetModel:GetAttribute("Mutation") or "None"
     local MPS = PetModel:GetAttribute("MPS") 
@@ -130,22 +114,22 @@ local function GetPetData(PetModel)
            or PetModel:GetAttribute("MoneyPerSecond") 
            or "?"
 
-    -- ✅ 2. IF STILL "?": SCAN WHOLE PET FOR ItemNameTag (SEARCHES ALL DESCENDANTS)
+ 
     if MPS == "?" then
-        local Tag = PetModel:FindFirstChild("ItemNameTag", true) -- true = search EVERYTHING
+        local Tag = PetModel:FindFirstChild("ItemNameTag", true) 
         if Tag then
-            -- Read mutation label
+         
             local MutLabel = Tag:FindFirstChild("Mutation")
             if MutLabel and MutLabel:IsA("TextLabel") then
                 Mutation = MutLabel.Text ~= "" and MutLabel.Text or Mutation
             end
 
-            -- Read MPS labels (tries all possible names + nested Money.Label)
+            
             local MpsLabel = Tag:FindFirstChild("MPS") 
                           or Tag:FindFirstChild("Value") 
                           or Tag:FindFirstChild("Money")
             if MpsLabel then
-                -- Game often hides real value inside Money.Label
+              
                 local InnerLabel = MpsLabel:FindFirstChildWhichIsA("TextLabel")
                 if InnerLabel then
                     MPS = InnerLabel.Text ~= "" and InnerLabel.Text or MPS
@@ -156,7 +140,7 @@ local function GetPetData(PetModel)
         end
     end
 
-    -- ✅ 3. FORMAT BIG NUMBERS (12345 → 12.3K etc.)
+
     local NumMPS = tonumber(MPS)
     if NumMPS then
         if NumMPS >= 1e15 then
@@ -178,9 +162,7 @@ local function GetPetData(PetModel)
 end
 
 
--- =====================
--- HELPER: CHECK FOR COSMIC UNICORNS
--- =====================
+
 local function HasCosmicUnicorn()
     for PetModel, _ in pairs(ESP_Objects) do
         if PetModel and PetModel.Parent then
@@ -193,15 +175,12 @@ local function HasCosmicUnicorn()
     return false
 end
 
--- =====================
--- MAIN UPDATE LOOP
--- =====================
 RunService.RenderStepped:Connect(function()
     local CameraPos = Camera.CFrame.Position
     local FilterToCosmic = HasCosmicUnicorn()
 
     for PetModel, ESP in pairs(ESP_Objects) do
-        -- Hide if disabled or invalid
+
         if not ESP_Enabled or not PetModel or not PetModel.Parent then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -218,9 +197,6 @@ RunService.RenderStepped:Connect(function()
         -- Get full pet data
         local Species, Mutation, MPS = GetPetData(PetModel)
 
-        -- =============================================
-        -- COSMIC UNICORN FILTER LOGIC
-        -- =============================================
         if FilterToCosmic then
             if not (Species == "Unicorn" and Mutation == "Cosmic") then
                 for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
@@ -235,7 +211,7 @@ RunService.RenderStepped:Connect(function()
             end
         end
 
-        -- Get position & distance
+    
         local RootPart = PetModel:FindFirstChild("HumanoidRootPart") 
                       or PetModel:FindFirstChildWhichIsA("BasePart")
         if not RootPart then
@@ -247,7 +223,7 @@ RunService.RenderStepped:Connect(function()
         local Distance = (CameraPos - RootPart.Position).Magnitude
         local ScreenPos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
 
-        -- Hide if too far or off-screen
+
         if Distance > ESP_Config.MaxDistance or not OnScreen then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -280,7 +256,7 @@ RunService.RenderStepped:Connect(function()
             ESP.Corners[i].Visible = true
         end
 
-        -- Resize panel for 3 rows
+
         local PanelX = ScreenPos.X - ESP_Config.PanelWidth / 2
         local PanelY = ScreenPos.Y + 20
         local TotalHeight = (ESP_Config.RowHeight + ESP_Config.RowPadding) * 3 + 4
@@ -326,9 +302,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- =====================
--- Q KEYBIND TOGGLE
--- =====================
+
 UserInputService.InputBegan:Connect(function(Input, GameProcessed)
     if GameProcessed then return end
     if Input.KeyCode == Enum.KeyCode.Q then
@@ -336,9 +310,7 @@ UserInputService.InputBegan:Connect(function(Input, GameProcessed)
     end
 end)
 
--- =====================
--- AUTO-DETECT PETS
--- =====================
+
 task.spawn(function()
     local RuntimePets = workspace:WaitForChild("RuntimePets", 10)
     if not RuntimePets then return end
