@@ -1,18 +1,9 @@
--- =============================================
--- ROOF-ONLY ESP – EXACTLY THE SAME, ONLY VERTICAL STRIP REMOVED
--- ✅ ALL GOOD HIGHLIGHTS UNTOUCHED (big roof, outer box, colors, toggle)
--- ✅ ONLY THAT NARROW LADDER/POLE STRIP IS GONE
--- ✅ Toggle: C | No lag | Perfect alignment
--- =============================================
-
 -- Services
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 
--- =====================
--- 🎨 100% UNCHANGED CONFIG
--- =====================
+
 local ESP_Config = {
     OutlineThickness = 2.3,
     MaxDistance = 9999,
@@ -32,21 +23,17 @@ local ESP_Config = {
     }
 }
 
--- =====================
--- INTERNAL (UNCHANGED)
--- =====================
+
 local ESP_Enabled = true
 local RoofPartESP = {}
 local ROOF_HEIGHT_TOLERANCE = 0.15
 
--- 🔧 ONLY THESE 2 NUMBERS WERE TWEAKED – EVERYTHING ELSE IS IDENTICAL
-local ROOF_MAX_THICKNESS = 2.5
-local ASPECT_RATIO_LIMIT = 3.0   -- >3:1 = strip = SKIP (kills exactly that ladder)
-local MIN_SKINNY_SIDE = 1.8      -- Narrower than 1.8 studs = SKIP
 
--- =====================
--- FILTERS (ONLY SHAPE CHECK IS TIGHTER – NAME CHECK UNCHANGED)
--- =====================
+local ROOF_MAX_THICKNESS = 2.5
+local ASPECT_RATIO_LIMIT = 3.0   
+local MIN_SKINNY_SIDE = 1.8     
+
+
 local function ShouldSkipDeep(Part, PlotRegion)
     local function HasSkipWord(Text)
         local T = Text:lower()
@@ -64,29 +51,27 @@ local function ShouldSkipDeep(Part, PlotRegion)
     return false
 end
 
--- ✅ ONLY THIS FUNCTION GOT TIGHTER – EVERYTHING ELSE REMAINS
+
 local function IsRealRoofSlab(Part)
     local S = Part.Size
     local X, Y, Z = math.abs(S.X), math.abs(S.Y), math.abs(S.Z)
 
-    -- 1. Must be thin (roof slab, not a wall)
+ 
     if Y > ROOF_MAX_THICKNESS then return false end
 
-    -- 2. ✅ NEW: KILLS EXACTLY THAT STRIP – rotation-proof aspect check
+
     local HorizSmall = math.min(X, Z)
     local HorizLarge  = math.max(X, Z)
     if HorizSmall < MIN_SKINNY_SIDE then return false end       -- Too thin = strip
     if HorizLarge / HorizSmall > ASPECT_RATIO_LIMIT then return false end -- Too stretched = strip
 
-    -- 3. Must be wide enough to be a real roof piece
+
     if HorizLarge < 4.0 then return false end
 
     return true
 end
 
--- =====================
--- 100% UNCHANGED FROM HERE DOWN – SCAN / ROOF PICK / DRAW / TOGGLE
--- =====================
+
 local function GetPlotRegion(PlotID)
     local ok, r = pcall(function()
         local P = workspace:FindFirstChild("Plots")
@@ -247,7 +232,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ✅ TOGGLE: C (UNCHANGED)
 UserInputService.InputBegan:Connect(function(Input, GP)
     if GP then return end
     if Input.KeyCode == Enum.KeyCode.C then
