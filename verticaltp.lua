@@ -1,19 +1,17 @@
---tp above and below script
+
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- ======================
--- CREATE ALL GUI ELEMENTS
--- ======================
+
 local TeleportGui = Instance.new("ScreenGui")
 TeleportGui.Name = "VerticalTeleport"
 TeleportGui.ResetOnSpawn = false
 TeleportGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 TeleportGui.Parent = playerGui
 
--- Main Frame (perfect size for your layout)
+
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 180, 0, 180)
 MainFrame.Position = UDim2.new(0.02, 0, 0.5, -110)
@@ -32,7 +30,7 @@ Shadow.Thickness = 1
 Shadow.Transparency = 0.4
 Shadow.Parent = MainFrame
 
--- Title Bar (Close button fits perfectly)
+
 local TitleBar = Instance.new("Frame")
 TitleBar.Size = UDim2.new(1, 0, 0, 45)
 TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -49,7 +47,7 @@ Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
--- Close Button (matches your screenshot exactly)
+
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 50, 0, 35)
 CloseBtn.Position = UDim2.new(1, -70, 0, 5)
@@ -64,13 +62,13 @@ local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 8)
 CloseCorner.Parent = CloseBtn
 
--- Input Box: SET DEFAULT TEXT TO 20
+
 local InputBox = Instance.new("TextBox")
 InputBox.Size = UDim2.new(0.9, 0, 0, 55)
 InputBox.Position = UDim2.new(0.05, 0, 0.28, 0)
 InputBox.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 InputBox.PlaceholderText = "Enter studs"
-InputBox.Text = "20" -- ✅ DEFAULT VALUE SET TO 20
+InputBox.Text = "20" 
 InputBox.TextColor3 = Color3.new(1,1,1)
 InputBox.TextScaled = true
 InputBox.Font = Enum.Font.Gotham
@@ -80,7 +78,7 @@ local InputCorner = Instance.new("UICorner")
 InputCorner.CornerRadius = UDim.new(0, 8)
 InputCorner.Parent = InputBox
 
--- ✅ Fixed Buttons: Equal size, proper spacing, match your look
+
 local BtnUp = Instance.new("TextButton")
 BtnUp.Size = UDim2.new(0.46, 0, 0, 60)
 BtnUp.Position = UDim2.new(0.03, 0, 0.62, 0)
@@ -109,7 +107,7 @@ local BtnCorner2 = Instance.new("UICorner")
 BtnCorner2.CornerRadius = UDim.new(0, 10)
 BtnCorner2.Parent = BtnDown
 
--- Open Button (toggle works same as before)
+
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 100, 0, 50)
 OpenBtn.Position = UDim2.new(0, 10, 0, 70)
@@ -125,9 +123,7 @@ local OpenCorner = Instance.new("UICorner")
 OpenCorner.CornerRadius = UDim.new(0, 12)
 OpenCorner.Parent = OpenBtn
 
--- ======================
--- DRAGGABLE LOGIC (unchanged)
--- ======================
+
 local dragging, dragInput, dragStart, startPos
 
 TitleBar.InputBegan:Connect(function(input)
@@ -159,21 +155,19 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
--- ======================
--- TELEPORT LOGIC (fixed to use default safely)
--- ======================
+
 local function doTeleport(direction)
     local char = player.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- Use 20 as fallback if input is invalid
+
     local amount = tonumber(InputBox.Text) or 20
     if amount <= 0 then
         InputBox.Text = "Invalid!"
         task.wait(1.5)
-        InputBox.Text = "20" -- Reset back to default
+        InputBox.Text = "20" 
         return
     end
 
@@ -181,11 +175,11 @@ local function doTeleport(direction)
 end
 
 BtnUp.MouseButton1Click:Connect(function()
-    doTeleport(1) -- Move UP
+    doTeleport(1) 
 end)
 
 BtnDown.MouseButton1Click:Connect(function()
-    doTeleport(-1) -- Move DOWN
+    doTeleport(-1) 
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
