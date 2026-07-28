@@ -116,8 +116,8 @@ MiscWindow:AddButton({
         if not char then return end
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        local studs = tonumber(StudInput.value) or 35
-        if studs <= 0 then studs = 35 end
+        local studs = tonumber(StudInput.value) or 20
+        if studs <= 0 then studs = 20 end
         hrp.CFrame = hrp.CFrame + Vector3.new(0, studs, 0)
     end
 })
@@ -130,8 +130,8 @@ MiscWindow:AddButton({
         if not char then return end
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        local studs = tonumber(StudInput.value) or 35
-        if studs <= 0 then studs = 35 end
+        local studs = tonumber(StudInput.value) or 20
+        if studs <= 0 then studs = 20 end
         hrp.CFrame = hrp.CFrame + Vector3.new(0, -studs, 0)
     end
 })
