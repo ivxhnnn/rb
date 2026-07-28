@@ -1,15 +1,14 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- Always get fresh character reference
 local function getCharacter()
     local char = player.Character or player.CharacterAdded:Wait()
     return char, char:WaitForChild("Humanoid")
 end
 
--- Create UI
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.ResetOnSpawn = true -- Auto-clean on respawn
+screenGui.ResetOnSpawn = true 
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local button = Instance.new("TextButton")
@@ -21,19 +20,19 @@ button.Parent = screenGui
 
 local isRagdoll = false
 
--- Safe enable: CLEAN UP FIRST before adding new
+
 local function enableRagdoll()
     local character, humanoid = getCharacter()
     if not humanoid or humanoid.Health <= 0 then return end
 
-    -- First delete ANY leftover ragdoll objects
+   
     for _, obj in pairs(character:GetDescendants()) do
         if obj:IsA("BallSocketConstraint") or obj:IsA("Attachment") then
             obj:Destroy()
         end
     end
 
-    -- Now build fresh ragdoll
+ 
     for _, joint in pairs(character:GetDescendants()) do
         if joint:IsA("Motor6D") then
             local att0 = Instance.new("Attachment", joint.Part0)
@@ -54,19 +53,19 @@ local function enableRagdoll()
     humanoid.PlatformStand = true
 end
 
--- Safe disable: restore motors properly
+
 local function disableRagdoll()
     local character, humanoid = getCharacter()
     if not humanoid then return end
 
-    -- Re-enable all motors first
+  
     for _, joint in pairs(character:GetDescendants()) do
         if joint:IsA("Motor6D") then
             joint.Enabled = true
         end
     end
 
-    -- Remove all ragdoll physics objects
+  
     for _, obj in pairs(character:GetDescendants()) do
         if obj:IsA("BallSocketConstraint") or obj:IsA("Attachment") then
             obj:Destroy()
@@ -87,7 +86,7 @@ end
 
 button.MouseButton1Click:Connect(toggleRagdoll)
 
--- Reset state on respawn
+
 player.CharacterAdded:Connect(function()
     isRagdoll = false
 end)
