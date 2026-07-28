@@ -1,9 +1,4 @@
--- Tora Script | MISC ONLY (All Features Integrated)
--- Library: https://raw.githubusercontent.com/liebertsx/Tora-Library/main/src/librarynew
 
--- =============================================
--- SERVICES
--- =============================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
@@ -12,9 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
--- =============================================
--- LOAD TORA UI LIBRARY
--- =============================================
+
 local existingTora = CoreGui:FindFirstChild("ToraScript")
 if existingTora then existingTora:Destroy() end
 
@@ -23,14 +16,10 @@ local Library = loadstring(game:HttpGet(
     true
 ))()
 
--- =============================================
--- ONLY WINDOW: MISC
--- =============================================
+
 local MiscWindow = Library:CreateWindow("MISC")
 
--- =============================================
--- 1. ANTI FALL BUTTON
--- =============================================
+
 MiscWindow:AddButton({
     text = "Anti Fall",
     flag = "antifall",
@@ -53,24 +42,21 @@ MiscWindow:AddButton({
     end
 })
 
--- =============================================
--- 2. PERMANENT WALK SPEED (DEFAULT = 40, NEVER RESETS)
--- =============================================
+
 local wsConnections = {}
-local desiredWalkSpeed = 40 -- ✅ DEFAULT CHANGED TO 40
+local desiredWalkSpeed = 40 
 
 local function applyWalkSpeed(character)
     if not character then return end
     local humanoid = character:WaitForChild("Humanoid", 10)
     if not humanoid then return end
 
-    -- Clear old loops to prevent duplicates
+   
     if wsConnections.maintainLoop then wsConnections.maintainLoop:Disconnect() end
     if wsConnections.propertyGuard then wsConnections.propertyGuard:Disconnect() end
 
     humanoid.WalkSpeed = desiredWalkSpeed
 
-    -- Runs LAST every frame — game cannot overwrite
     wsConnections.maintainLoop = RunService.RenderStepped:Connect(function()
         if humanoid and humanoid.Parent and humanoid.Health > 0 then
             local current = tonumber(Library.flags.walkspeed) or desiredWalkSpeed
@@ -78,7 +64,7 @@ local function applyWalkSpeed(character)
         end
     end)
 
-    -- Instantly revert if game tries to change WalkSpeed
+   
     wsConnections.propertyGuard = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
         if math.abs(humanoid.WalkSpeed - desiredWalkSpeed) > 0.1 then
             humanoid.WalkSpeed = desiredWalkSpeed
@@ -86,7 +72,7 @@ local function applyWalkSpeed(character)
     end)
 end
 
--- ✅ Slider default = 40
+
 MiscWindow:AddSlider({
     text = "Walk Speed",
     flag = "walkspeed",
@@ -100,32 +86,30 @@ MiscWindow:AddSlider({
     end
 })
 
--- Re-apply on respawn
+
 wsConnections.respawnListener = LocalPlayer.CharacterAdded:Connect(function(newCharacter)
     task.wait(1.5)
     applyWalkSpeed(newCharacter)
 end)
 
--- Apply on first load
+
 if LocalPlayer.Character then
     task.spawn(function() applyWalkSpeed(LocalPlayer.Character) end)
 end
 
--- =============================================
--- 3. VERTICAL TELEPORT (DEFAULT = 35 STUDS)
--- =============================================
+
 MiscWindow:AddLabel({ text = "Vertical Teleport" })
 
--- ✅ Input default = 35
+
 local StudInput = MiscWindow:AddBox({
     text = "Stud Amount",
     flag = "studAmount",
-    value = "35",
+    value = "20",
     callback = function() end
 })
 
 MiscWindow:AddButton({
-    text = "⬆ Teleport Above",
+    text = "Above",
     flag = "tpUp",
     callback = function()
         local char = LocalPlayer.Character
@@ -139,7 +123,7 @@ MiscWindow:AddButton({
 })
 
 MiscWindow:AddButton({
-    text = "⬇ Teleport Below",
+    text = "Below",
     flag = "tpDown",
     callback = function()
         local char = LocalPlayer.Character
@@ -152,9 +136,7 @@ MiscWindow:AddButton({
     end
 })
 
--- =============================================
--- 4. FREEZE TOGGLE
--- =============================================
+
 local isFrozen = false
 local freezeLoop = nil
 
@@ -184,7 +166,7 @@ local function setFreeze(state)
         for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
             track:AdjustSpeed(1)
         end
-        applyWalkSpeed(char) -- Refresh walk speed after unfreeze
+        applyWalkSpeed(char) 
     end
 end
 
@@ -197,22 +179,20 @@ MiscWindow:AddToggle({
     end
 })
 
--- Keep freeze through death
+
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(2)
     if isFrozen then setFreeze(true) end
 end)
 
--- =============================================
--- 5. GLIDE SYSTEM (GUI TOGGLE + F KEYBIND, SYNCED)
--- =============================================
--- ⚙️ Glide Config
+
+
 local TOGGLE_KEY = Enum.KeyCode.F
 local MAX_GLIDE_SPEED = -7
 local GLIDE_DELAY_AFTER_JUMP = 0.2
 local SHOW_TOGGLE_MESSAGE = true
 
--- Glide State
+
 local GLIDE_SYSTEM_ACTIVE = false
 local jumpStartTime = 0
 local glideChar = nil
@@ -220,14 +200,14 @@ local glideHumanoid = nil
 local glideRoot = nil
 local glideConnections = {}
 
--- Glide Toggle (matches MISC tab design perfectly)
+
 local GlideToggle = MiscWindow:AddToggle({
     text = "Glide [Press F]",
     flag = "glide",
     state = false,
     callback = function(enabled)
         GLIDE_SYSTEM_ACTIVE = enabled
-        -- Show on-screen notification
+        
         if SHOW_TOGGLE_MESSAGE then
             pcall(function()
                 StarterGui:SetCore("SendNotification", {
@@ -240,9 +220,9 @@ local GlideToggle = MiscWindow:AddToggle({
     end
 })
 
--- Bind glide to new character (respawn-safe)
+
 local function bindGlideToCharacter(newChar)
-    -- Clean up old jump connection
+
     if glideConnections.jumping then glideConnections.jumping:Disconnect() end
 
     glideChar = newChar
@@ -251,7 +231,7 @@ local function bindGlideToCharacter(newChar)
     if not glideHumanoid or not glideRoot then return end
     jumpStartTime = 0
 
-    -- Track jump timing
+ 
     glideConnections.jumping = glideHumanoid.Jumping:Connect(function(isJumping)
         if isJumping then
             jumpStartTime = os.clock()
@@ -259,16 +239,16 @@ local function bindGlideToCharacter(newChar)
     end)
 end
 
--- F Keybind — syncs with GUI toggle
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode ~= TOGGLE_KEY then return end
-    -- Flip state + update GUI checkbox automatically
+    
     local newState = not GLIDE_SYSTEM_ACTIVE
     GlideToggle:SetState(newState)
 end)
 
--- Glide Physics Loop
+
 RunService.Heartbeat:Connect(function()
     if not GLIDE_SYSTEM_ACTIVE then return end
     if not glideHumanoid or not glideRoot or glideHumanoid.Health <= 0 then return end
@@ -287,30 +267,25 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Re-bind glide on respawn
+
 LocalPlayer.CharacterAdded:Connect(function(newChar)
     task.wait(1)
     bindGlideToCharacter(newChar)
 end)
 
--- Initial bind
+
 if LocalPlayer.Character then
     task.spawn(function() bindGlideToCharacter(LocalPlayer.Character) end)
 end
 
--- =============================================
--- INITIALIZE UI + FINAL FIXES
--- =============================================
+
 Library:Init()
 
--- Never reset GUI/values when you die
 if Library.base then
     Library.base.ResetOnSpawn = false
 end
 
--- =============================================
--- AUTO-FIRE PROXIMITY PROMPTS
--- =============================================
+
 ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
     fireproximityprompt(prompt)
 end)
