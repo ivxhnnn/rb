@@ -114,7 +114,7 @@ local function C_5()
 end
 task.spawn(C_5);
 
--- ✅ FIXED FREEZE FUNCTION
+
 local function C_a()
 	local script = G2L['a'];
 	local player = game.Players.LocalPlayer
@@ -131,14 +131,14 @@ local function C_a()
 		froze = not froze
 		if froze then
 			script.Parent.TextColor3 = Color3.fromRGB(0, 170, 0);
-			-- Freeze animations ONLY — DO NOT anchor parts
+		
 			if animate then animate.Disabled = true end
 			for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
 				track:AdjustSpeed(0)
 			end
 		else
 			script.Parent.TextColor3 = Color3.fromRGB(170, 0, 0);
-			-- Restore everything
+		
 			if animate then animate.Disabled = false end
 			for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
 				track:AdjustSpeed(1)
