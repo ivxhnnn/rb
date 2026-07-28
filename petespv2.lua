@@ -1,10 +1,3 @@
--- Pet ESP – MPS ONLY + TIERED COLOR FILTER + Q Toggle
--- Tiers:
---   ≥ 50M  → Red highlight
---   ≥ 100M → Blue highlight
---   ≥ 200M → Yellow highlight
--- Toggle: Press Q to ON/OFF
--- =============================================
 
 -- Services
 local Players = game:GetService("Players")
@@ -13,9 +6,6 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- =====================
--- CONFIG (EDIT THESE)
--- =====================
 local ESP_Config = {
     MaxDistance = 9999,
     BoxThickness = 1.5,
@@ -24,36 +14,32 @@ local ESP_Config = {
     PanelWidth = 110,
     RowHeight = 18,
     RowPadding = 1,
-    MinMPS = 50000000, -- Base filter: NEVER show pets BELOW this
-    OwnPetBoxColor = Color3.fromRGB(100, 255, 100), -- Keep your own pets green box
-    -- ✅ NEW: TIER COLORS + THRESHOLDS
+    MinMPS = 50000000, 
+    OwnPetBoxColor = Color3.fromRGB(100, 255, 100), 
+ 
     TierColors = {
-        [1] = Color3.fromRGB(255, 50, 50),   -- 50M → 99.9M : Red
-        [2] = Color3.fromRGB(50, 120, 255),  -- 100M → 199.9M : Blue
-        [3] = Color3.fromRGB(255, 220, 50)   -- 200M+ : Yellow
+        [1] = Color3.fromRGB(255, 50, 50),   
+        [2] = Color3.fromRGB(50, 120, 255),  
+        [3] = Color3.fromRGB(255, 220, 50)   
     },
     RowColors = {
         Color3.fromRGB(25, 50, 60)
     },
-    LabelColor = Color3.fromRGB(100, 220, 160) -- "MPS" label color
+    LabelColor = Color3.fromRGB(100, 220, 160) 
 }
 
--- =====================
--- ✅ ADDED: GET TIER COLOR FROM MPS VALUE
--- =====================
+
 local function GetTierColor(NumMPS)
     if NumMPS >= 200000000 then
-        return ESP_Config.TierColors[3] -- Yellow (200M+)
+        return ESP_Config.TierColors[3] 
     elseif NumMPS >= 100000000 then
-        return ESP_Config.TierColors[2] -- Blue (100M+)
+        return ESP_Config.TierColors[2] 
     else
-        return ESP_Config.TierColors[1] -- Red (50M+)
+        return ESP_Config.TierColors[1] 
     end
 end
 
--- =====================
--- PARSE FORMATTED MPS STRINGS (UNCHANGED)
--- =====================
+
 local SuffixMultipliers = {
     k = 1e3, K = 1e3,
     m = 1e6, M = 1e6,
@@ -72,15 +58,11 @@ local function ParseMPS(Value)
     return N
 end
 
--- =====================
--- INTERNAL STATE (UNCHANGED)
--- =====================
+
 local ESP_Objects = {}
 local ESP_Enabled = true
 
--- =====================
--- DRAWING HELPERS (UNCHANGED)
--- =====================
+
 local function DrawLine(Color, Thickness)
     local Line = Drawing.new("Line")
     Line.Visible = false
@@ -113,9 +95,7 @@ local function DrawSquare(Color, Thickness, Filled, Transparency)
     return Square
 end
 
--- =====================
--- ESP MANAGEMENT (UNCHANGED)
--- =====================
+
 local function AddPetESP(PetModel)
     if ESP_Objects[PetModel] then return end
 
@@ -151,9 +131,7 @@ local function RemovePetESP(PetModel)
     ESP_Objects[PetModel] = nil
 end
 
--- =====================
--- EXTRACT PET DATA (UNCHANGED)
--- =====================
+
 local function GetPetData(PetModel)
     local Species = PetModel:GetAttribute("Species") or PetModel.Name or "Unknown"
     local Mutation = PetModel:GetAttribute("Mutation") or "None"
@@ -205,14 +183,12 @@ local function GetPetData(PetModel)
     return Species, Mutation, DisplayMPS, NumMPS
 end
 
--- =====================
--- MAIN UPDATE LOOP – TIERED COLOR LOGIC ADDED
--- =====================
+
 RunService.RenderStepped:Connect(function()
     local CameraPos = Camera.CFrame.Position
 
     for PetModel, ESP in pairs(ESP_Objects) do
-        -- Hide if disabled or invalid
+        
         if not ESP_Enabled or not PetModel or not PetModel.Parent then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -226,10 +202,10 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- Get pet data
+
         local Species, Mutation, MPS, NumMPS = GetPetData(PetModel)
 
-        -- Base filter: hide <50M
+       
         if NumMPS < ESP_Config.MinMPS then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -242,10 +218,10 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- ✅ NEW: GET TIER COLOR FOR THIS PET
+      
         local TierColor = GetTierColor(NumMPS)
 
-        -- Get position & distance
+    
         local RootPart = PetModel:FindFirstChild("HumanoidRootPart") 
                       or PetModel:FindFirstChildWhichIsA("BasePart")
         if not RootPart then
@@ -257,7 +233,7 @@ RunService.RenderStepped:Connect(function()
         local Distance = (CameraPos - RootPart.Position).Magnitude
         local ScreenPos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
 
-        -- Hide if too far or off-screen
+       
         if Distance > ESP_Config.MaxDistance or not OnScreen then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -270,14 +246,12 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- ✅ UPDATED COLOR LOGIC:
-        -- Own pets = green box + tier-colored MPS text
-        -- Other pets = tier-colored box + tier-colored MPS text
+        
         local OwnerId = PetModel:GetAttribute("OwnerUserId")
         local IsOwned = OwnerId == LocalPlayer.UserId
         local BoxColor = IsOwned and ESP_Config.OwnPetBoxColor or TierColor
 
-        -- Draw box
+
         local BoxSize = 2.5 * ESP_Config.CornerSize
         local Corners = {
             {Vector2.new(ScreenPos.X - BoxSize, ScreenPos.Y - BoxSize), Vector2.new(ScreenPos.X + BoxSize, ScreenPos.Y - BoxSize)},
@@ -292,7 +266,7 @@ RunService.RenderStepped:Connect(function()
             ESP.Corners[i].Visible = true
         end
 
-        -- Panel layout
+    
         local PanelX = ScreenPos.X - ESP_Config.PanelWidth / 2
         local PanelY = ScreenPos.Y + 20
         local TotalHeight = (ESP_Config.RowHeight + ESP_Config.RowPadding) * 1 + 4
@@ -303,10 +277,9 @@ RunService.RenderStepped:Connect(function()
 
         ESP.PanelBorder.Position = ESP.PanelBG.Position
         ESP.PanelBorder.Size = ESP.PanelBG.Size
-        ESP.PanelBorder.Color = BoxColor -- Border matches box color
+        ESP.PanelBorder.Color = BoxColor 
         ESP.PanelBorder.Visible = true
 
-        -- ✅ ONLY MPS ROW – VALUE COLOR = TIER COLOR
         local InfoRows = {
             {"MPS", MPS}
         }
@@ -326,7 +299,7 @@ RunService.RenderStepped:Connect(function()
             Row.Label.Color = ESP_Config.LabelColor
             Row.Label.Visible = true
 
-            -- ✅ HIGHLIGHT: MPS number uses tier color
+           
             Row.Value.Text = Value
             Row.Value.Position = Vector2.new(PanelX + ESP_Config.PanelWidth/2 + 10, RowY + 1)
             Row.Value.Color = TierColor
@@ -337,9 +310,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- =====================
--- Q KEYBIND TOGGLE (UNCHANGED)
--- =====================
+
 UserInputService.InputBegan:Connect(function(Input, GameProcessed)
     if GameProcessed then return end
     if Input.KeyCode == Enum.KeyCode.Q then
@@ -347,9 +318,7 @@ UserInputService.InputBegan:Connect(function(Input, GameProcessed)
     end
 end)
 
--- =====================
--- AUTO-DETECT PETS (UNCHANGED)
--- =====================
+
 task.spawn(function()
     local RuntimePets = workspace:WaitForChild("RuntimePets", 10)
     if not RuntimePets then return end
