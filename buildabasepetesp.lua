@@ -1,10 +1,3 @@
--- =============================================
--- Pet ESP – Cosmic Unicorn Priority + Q Toggle
--- Shows: SPECIES | MUTATION
--- Toggle: Press Q to ON/OFF
--- RULE: If Unicorn WITH Cosmic Mutation exists → ONLY show Cosmic Unicorns; hide all others
---       If NO Cosmic Unicorn → show ALL pets normally
--- =============================================
 
 -- Services
 local Players = game:GetService("Players")
@@ -13,9 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- =====================
--- CONFIG (EDIT THESE)
--- =====================
+
 local ESP_Config = {
     MaxDistance = 9999,
     BoxThickness = 1.5,
@@ -37,15 +28,11 @@ local ESP_Config = {
     ValueColor = Color3.new(1,1,1)
 }
 
--- =====================
--- INTERNAL STATE
--- =====================
+
 local ESP_Objects = {}
 local ESP_Enabled = true
 
--- =====================
--- DRAWING HELPERS
--- =====================
+
 local function DrawLine(Color, Thickness)
     local Line = Drawing.new("Line")
     Line.Visible = false
@@ -78,9 +65,7 @@ local function DrawSquare(Color, Thickness, Filled, Transparency)
     return Square
 end
 
--- =====================
--- ESP MANAGEMENT
--- =====================
+
 local function AddPetESP(PetModel)
     if ESP_Objects[PetModel] then return end
 
@@ -116,15 +101,13 @@ local function RemovePetESP(PetModel)
     ESP_Objects[PetModel] = nil
 end
 
--- =====================
--- HELPER: CHECK FOR COSMIC UNICORNS
--- =====================
+
 local function HasCosmicUnicorn()
     for PetModel, _ in pairs(ESP_Objects) do
         if PetModel and PetModel.Parent then
             local Species = PetModel:GetAttribute("Species") or "Unknown"
             local Mutation = PetModel:GetAttribute("Mutation") or "None"
-            -- Match exactly: Species = Unicorn AND Mutation = Cosmic
+
             if Species == "Unicorn" and Mutation == "Cosmic" then
                 return true
             end
@@ -133,15 +116,13 @@ local function HasCosmicUnicorn()
     return false
 end
 
--- =====================
--- MAIN UPDATE LOOP
--- =====================
+
 RunService.RenderStepped:Connect(function()
     local CameraPos = Camera.CFrame.Position
     local FilterToCosmic = HasCosmicUnicorn() -- Only filter if Cosmic Unicorn exists
 
     for PetModel, ESP in pairs(ESP_Objects) do
-        -- Hide if disabled or invalid
+     
         if not ESP_Enabled or not PetModel or not PetModel.Parent then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -155,13 +136,11 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- =============================================
-        -- COSMIC UNICORN FILTER LOGIC
-        -- =============================================
+   
         if FilterToCosmic then
             local Species = PetModel:GetAttribute("Species") or "Unknown"
             local Mutation = PetModel:GetAttribute("Mutation") or "None"
-            -- Hide everything EXCEPT Cosmic Unicorns
+          
             if not (Species == "Unicorn" and Mutation == "Cosmic") then
                 for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
                 ESP.PanelBG.Visible = false
@@ -175,7 +154,7 @@ RunService.RenderStepped:Connect(function()
             end
         end
 
-        -- Get position & distance
+       
         local RootPart = PetModel:FindFirstChild("HumanoidRootPart") 
                       or PetModel:FindFirstChildWhichIsA("BasePart")
         if not RootPart then
@@ -187,7 +166,7 @@ RunService.RenderStepped:Connect(function()
         local Distance = (CameraPos - RootPart.Position).Magnitude
         local ScreenPos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
 
-        -- Hide if too far or off-screen
+      
         if Distance > ESP_Config.MaxDistance or not OnScreen then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -200,7 +179,7 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- Get pet data
+     
         local OwnerId = PetModel:GetAttribute("OwnerUserId")
         local IsOwned = OwnerId == LocalPlayer.UserId
         local BoxColor = IsOwned and ESP_Config.OwnPetColor or ESP_Config.OtherPetColor
@@ -222,7 +201,7 @@ RunService.RenderStepped:Connect(function()
             ESP.Corners[i].Visible = true
         end
 
-        -- Draw info panel
+  
         local PanelX = ScreenPos.X - ESP_Config.PanelWidth / 2
         local PanelY = ScreenPos.Y + 20
         local RowY = PanelY + 4
@@ -265,9 +244,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- =====================
--- Q KEYBIND TOGGLE
--- =====================
+
 UserInputService.InputBegan:Connect(function(Input, GameProcessed)
     if GameProcessed then return end
     if Input.KeyCode == Enum.KeyCode.Q then
