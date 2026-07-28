@@ -1,9 +1,3 @@
--- =============================================
--- Pet ESP – MPS ONLY + 50M MPS FILTER + Q Toggle
--- Shows: MPS ONLY (no species / no mutation)
--- Toggle: Press Q to ON/OFF
--- RULE: Show ONLY pets ≥ 50,000,000 (50M) MPS; hide ALL weaker pets
--- =============================================
 
 -- Services
 local Players = game:GetService("Players")
@@ -12,33 +6,27 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- =====================
--- CONFIG (EDIT THESE)
--- =====================
+
 local ESP_Config = {
     MaxDistance = 9999,
     BoxThickness = 1.5,
     CornerSize = 0.25,
     Font = 2,
-    PanelWidth = 110, -- Narrower since only MPS
-    RowHeight = 18, -- Slightly bigger for MPS readability
+    PanelWidth = 110, 
+    RowHeight = 18, 
     RowPadding = 1,
-    MinMPS = 50000000, -- ✅ 50 MILLION MPS MINIMUM (edit this to change threshold)
+    MinMPS = 50000000, 
     OwnPetColor = Color3.fromRGB(100, 255, 100),
     OtherPetColor = Color3.fromRGB(255, 100, 100),
     RowColors = {
-        Color3.fromRGB(25, 50, 60) -- Single row color
+        Color3.fromRGB(25, 50, 60) 
     },
     LabelColors = {
-        Color3.fromRGB(100, 220, 160) -- MPS label color
+        Color3.fromRGB(100, 220, 160) 
     },
     ValueColor = Color3.new(1,1,1)
 }
 
--- =====================
--- ✅ ADDED: PARSE FORMATTED MPS STRINGS (FIXES FILTER)
---    Converts "$145.52m/s" → 145520000, "58.64b" → 58640000000, etc.
--- =====================
 local SuffixMultipliers = {
     k = 1e3, K = 1e3,
     m = 1e6, M = 1e6,
@@ -49,9 +37,9 @@ local SuffixMultipliers = {
 local function ParseMPS(Value)
     if not Value then return 0 end
     if type(Value) == "number" then return Value end
-    -- Strip $ , spaces /s /sec suffixes
+    
     local Clean = tostring(Value):gsub("%$", ""):gsub(",", ""):gsub("%s+", ""):gsub("/s$", ""):gsub("/sec$", "")
-    -- Match number + optional letter suffix
+    
     local Num, Suffix = Clean:match("^([%d%.]+)(%a?)$")
     if not Num then return 0 end
     local N = tonumber(Num) or 0
@@ -59,15 +47,11 @@ local function ParseMPS(Value)
     return N
 end
 
--- =====================
--- INTERNAL STATE
--- =====================
+
 local ESP_Objects = {}
 local ESP_Enabled = true
 
--- =====================
--- DRAWING HELPERS (UNCHANGED)
--- =====================
+
 local function DrawLine(Color, Thickness)
     local Line = Drawing.new("Line")
     Line.Visible = false
@@ -100,9 +84,7 @@ local function DrawSquare(Color, Thickness, Filled, Transparency)
     return Square
 end
 
--- =====================
--- ESP MANAGEMENT (1 ROW ONLY = MPS) (UNCHANGED)
--- =====================
+
 local function AddPetESP(PetModel)
     if ESP_Objects[PetModel] then return end
 
@@ -113,12 +95,12 @@ local function AddPetESP(PetModel)
     ESP.PanelBG = DrawSquare(Color3.fromRGB(12,12,18), 1, true, 0.35)
     ESP.PanelBorder = DrawSquare(Color3.fromRGB(80,80,120), 1, false, 0.7)
     ESP.Rows = {}
-    -- ✅ ONLY 1 ROW NOW: MPS
+    
     for i = 1, 1 do
         ESP.Rows[i] = {
             BG = DrawSquare(),
             Label = DrawText(11),
-            Value = DrawText(14) -- Bigger MPS text
+            Value = DrawText(14) 
         }
     end
 
@@ -139,11 +121,9 @@ local function RemovePetESP(PetModel)
     ESP_Objects[PetModel] = nil
 end
 
--- =====================
--- HELPER: EXTRACT PET DATA (MODIFIED TO RETURN RAW NUMERIC MPS)
--- =====================
+
 local function GetPetData(PetModel)
-    -- ✅ 1. READ ATTRIBUTES FIRST (FAST + ALWAYS WORKS)
+    
     local Species = PetModel:GetAttribute("Species") or PetModel.Name or "Unknown"
     local Mutation = PetModel:GetAttribute("Mutation") or "None"
     local RawMPS = PetModel:GetAttribute("MPS") 
@@ -151,7 +131,7 @@ local function GetPetData(PetModel)
            or PetModel:GetAttribute("MoneyPerSecond") 
            or "?"
 
-    -- ✅ 2. IF STILL "?": SCAN WHOLE PET FOR ItemNameTag
+    
     if RawMPS == "?" then
         local Tag = PetModel:FindFirstChild("ItemNameTag", true)
         if Tag then
@@ -174,7 +154,7 @@ local function GetPetData(PetModel)
         end
     end
 
-    -- ✅ 3. PARSE TO RAW NUMBER FOR FILTER + FORMAT FOR DISPLAY
+   
     local NumMPS = ParseMPS(RawMPS)
     local DisplayMPS = RawMPS
     if NumMPS > 0 then
@@ -193,18 +173,15 @@ local function GetPetData(PetModel)
         end
     end
 
-    return Species, Mutation, DisplayMPS, NumMPS -- ✅ Now returns raw numeric MPS too
+    return Species, Mutation, DisplayMPS, NumMPS 
 end
 
--- =====================
--- MAIN UPDATE LOOP – COSMIC RULE DELETED, 50M FILTER ADDED
--- =====================
+
 RunService.RenderStepped:Connect(function()
     local CameraPos = Camera.CFrame.Position
-    -- ❌ DELETED: HasCosmicUnicorn() call (rule removed entirely)
-
+   
     for PetModel, ESP in pairs(ESP_Objects) do
-        -- Hide if disabled or invalid
+        
         if not ESP_Enabled or not PetModel or not PetModel.Parent then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -218,13 +195,10 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
-        -- Get pet data + raw numeric MPS for filter
+        
         local Species, Mutation, MPS, NumMPS = GetPetData(PetModel)
 
-        -- =============================================
-        -- ✅ NEW: 50 MILLION MPS THRESHOLD FILTER
-        --    Hide EVERY pet below 50,000,000 MPS
-        -- =============================================
+
         if NumMPS < ESP_Config.MinMPS then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -236,9 +210,7 @@ RunService.RenderStepped:Connect(function()
             end
             continue
         end
-        -- ❌ DELETED: Entire Cosmic Unicorn filter block
 
-        -- Get position & distance (UNCHANGED)
         local RootPart = PetModel:FindFirstChild("HumanoidRootPart") 
                       or PetModel:FindFirstChildWhichIsA("BasePart")
         if not RootPart then
@@ -250,7 +222,7 @@ RunService.RenderStepped:Connect(function()
         local Distance = (CameraPos - RootPart.Position).Magnitude
         local ScreenPos, OnScreen = Camera:WorldToViewportPoint(RootPart.Position)
 
-        -- Hide if too far or off-screen
+      
         if Distance > ESP_Config.MaxDistance or not OnScreen then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -283,7 +255,7 @@ RunService.RenderStepped:Connect(function()
             ESP.Corners[i].Visible = true
         end
 
-        -- ✅ PANEL RESIZED FOR 1 ROW ONLY
+       
         local PanelX = ScreenPos.X - ESP_Config.PanelWidth / 2
         local PanelY = ScreenPos.Y + 20
         local TotalHeight = (ESP_Config.RowHeight + ESP_Config.RowPadding) * 1 + 4 -- 1 row
@@ -297,9 +269,8 @@ RunService.RenderStepped:Connect(function()
         ESP.PanelBorder.Color = BoxColor
         ESP.PanelBorder.Visible = true
 
-        -- ✅ ONLY MPS ROW - NO SPECIES / NO MUTATION
         local InfoRows = {
-            {"MPS", MPS} -- Only this line remains
+            {"MPS", MPS} 
         }
 
         local RowY = PanelY + 4
@@ -327,9 +298,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- =====================
--- Q KEYBIND TOGGLE (UNCHANGED)
--- =====================
+
 UserInputService.InputBegan:Connect(function(Input, GameProcessed)
     if GameProcessed then return end
     if Input.KeyCode == Enum.KeyCode.Q then
@@ -337,9 +306,7 @@ UserInputService.InputBegan:Connect(function(Input, GameProcessed)
     end
 end)
 
--- =====================
--- AUTO-DETECT PETS (UNCHANGED)
--- =====================
+
 task.spawn(function()
     local RuntimePets = workspace:WaitForChild("RuntimePets", 10)
     if not RuntimePets then return end
