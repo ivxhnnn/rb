@@ -1,4 +1,3 @@
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
@@ -277,6 +276,111 @@ end)
 if LocalPlayer.Character then
     task.spawn(function() bindGlideToCharacter(LocalPlayer.Character) end)
 end
+
+-- ==============================================
+-- 🆕 NEW: REMOVE LEGS FEATURE (FIXED R15 VERSION)
+-- ==============================================
+local legsEnabled = true -- Start with legs ON
+local legRespawnConn = nil -- Track respawn connection
+
+-- Main leg removal function (fixes floating feet + body not lowering)
+local function removeLegsProperly(char)
+    if not char then return end
+    local humanoid = char:WaitForChild("Humanoid", 3)
+    local rootPart = char:WaitForChild("HumanoidRootPart", 3)
+    if not humanoid or not rootPart then return end
+
+    -- Full R15 leg + foot list (no more floating feet!)
+    local r15PartsToDelete = {
+        "LeftUpperLeg", "RightUpperLeg",
+        "LeftLowerLeg", "RightLowerLeg",
+        "LeftFoot", "RightFoot"
+    }
+    -- Optional R6 support
+    local r6PartsToDelete = {"Left Leg", "Right Leg"}
+    local allParts = table.clone(r15PartsToDelete)
+    for _, p in r6PartsToDelete do table.insert(allParts, p) end
+
+    -- Clean orphan joints FIRST (prevents jitter/T-pose)
+    for _, joint in ipairs(char:GetDescendants()) do
+        if joint:IsA("Motor6D") then
+            local partName = joint.Part1 and joint.Part1.Name or ""
+            if table.find(allParts, partName) then
+                joint:Destroy()
+            end
+        end
+    end
+
+    -- Delete all leg/foot parts
+    for _, partName in ipairs(allParts) do
+        local part = char:FindFirstChild(partName) or char:WaitForChild(partName, 1)
+        if part then part:Destroy() end
+    end
+
+    -- FIX FLOATING: Lower body to ground
+    humanoid.HipHeight = 0.4 -- Perfect for no legs
+    task.wait() -- Wait 1 frame for physics to catch up
+    rootPart.CFrame = rootPart.CFrame * CFrame.new(0, -1.6, 0) -- Instant snap down
+
+    -- FIX FALLING THROUGH FLOORS: Add invisible collision base
+    local existingBase = char:FindFirstChild("NoLegsCollision")
+    if not existingBase then
+        local collisionBase = Instance.new("Part")
+        collisionBase.Name = "NoLegsCollision"
+        collisionBase.Size = Vector3.new(2, 0.2, 1)
+        collisionBase.Transparency = 1 -- Invisible
+        collisionBase.CanCollide = true
+        collisionBase.CanTouch = false
+        collisionBase.CanQuery = false
+        collisionBase.Massless = true
+        collisionBase.Parent = char
+
+        -- Weld to root part
+        local weld = Instance.new("Weld")
+        weld.Part0 = rootPart
+        weld.Part1 = collisionBase
+        weld.C0 = CFrame.new(0, -1.1, 0) -- Position under torso
+        weld.Parent = rootPart
+    end
+
+    -- Stop broken leg animation spam
+    humanoid.AutoRotate = true
+    task.wait(0.05)
+    humanoid:ChangeState(Enum.HumanoidStateType.Running)
+end
+
+-- Add the toggle to your MISC window
+MiscWindow:AddToggle({
+    text = "Remove Legs",
+    flag = "removeLegs",
+    state = false,
+    callback = function(enabled)
+        legsEnabled = not enabled -- Invert: toggle ON = legs OFF
+
+        if not legsEnabled then
+            -- Remove legs NOW
+            if LocalPlayer.Character then
+                task.spawn(function() removeLegsProperly(LocalPlayer.Character) end)
+            end
+
+            -- Auto-remove legs on EVERY respawn
+            legRespawnConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                task.wait(1.2) -- Wait for character to load
+                removeLegsProperly(newChar)
+            end)
+        else
+            -- Turn OFF: stop auto-removing on respawns
+            if legRespawnConn then
+                legRespawnConn:Disconnect()
+                legRespawnConn = nil
+            end
+            -- Next time you respawn, legs will come back normally
+        end
+    end
+})
+-- ==============================================
+-- 🆕 END OF NEW LEG REMOVAL CODE
+-- ==============================================
 
 
 Library:Init()
