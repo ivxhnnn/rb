@@ -6,7 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
--- Clean up old Tora instance
+
 local existingTora = CoreGui:FindFirstChild("ToraScript")
 if existingTora then existingTora:Destroy() end
 
@@ -16,9 +16,7 @@ local Library = loadstring(game:HttpGet(
     true
 ))()
 
--- ============================================================
---  TAB 1 : MISC (original features + ESP + Pet ESP)
--- ============================================================
+
 local MiscWindow = Library:CreateWindow("MISC")
 
 -- Anti Fall
@@ -166,7 +164,7 @@ local function setFreeze(state)
     end
 end
 
-MiscWindow:AddToggle({
+local FreezeToggle = MiscWindow:AddToggle({
     text = "Freeze",
     flag = "freeze",
     state = false,
@@ -174,6 +172,15 @@ MiscWindow:AddToggle({
         setFreeze(enabled)
     end
 })
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        FreezeToggle:SetState(not FreezeToggle.state)  -- toggles the UI and triggers the callback
+    end
+end)
+
+
 
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(2)
@@ -194,7 +201,7 @@ local glideRoot = nil
 local glideConnections = {}
 
 local GlideToggle = MiscWindow:AddToggle({
-    text = "Glide [Press F]",
+    text = "Glide",
     flag = "glide",
     state = false,
     callback = function(enabled)
@@ -225,12 +232,7 @@ local function bindGlideToCharacter(newChar)
     end)
 end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode ~= TOGGLE_KEY then return end
-    local newState = not GLIDE_SYSTEM_ACTIVE
-    GlideToggle:SetState(newState)
-end)
+
 
 RunService.Heartbeat:Connect(function()
     if not GLIDE_SYSTEM_ACTIVE then return end
@@ -267,55 +269,74 @@ local function removeLegsProperly(char)
     local rootPart = char:WaitForChild("HumanoidRootPart", 3)
     if not humanoid or not rootPart then return end
 
-    local r15PartsToDelete = {
+    -- 1. Delete all leg parts and their Motor6Ds (R15 + R6)
+    local legParts = {
         "LeftUpperLeg", "RightUpperLeg",
         "LeftLowerLeg", "RightLowerLeg",
-        "LeftFoot", "RightFoot"
+        "LeftFoot", "RightFoot",
+        "Left Leg", "Right Leg"
     }
-    local r6PartsToDelete = {"Left Leg", "Right Leg"}
-    local allParts = table.clone(r15PartsToDelete)
-    for _, p in r6PartsToDelete do table.insert(allParts, p) end
-
     for _, joint in ipairs(char:GetDescendants()) do
         if joint:IsA("Motor6D") then
             local partName = joint.Part1 and joint.Part1.Name or ""
-            if table.find(allParts, partName) then
+            if table.find(legParts, partName) then
                 joint:Destroy()
             end
         end
     end
-
-    for _, partName in ipairs(allParts) do
+    for _, partName in ipairs(legParts) do
         local part = char:FindFirstChild(partName) or char:WaitForChild(partName, 1)
         if part then part:Destroy() end
     end
 
+    -- 2. Move the root down (your original look)
     humanoid.HipHeight = 0.4
     task.wait()
     rootPart.CFrame = rootPart.CFrame * CFrame.new(0, -1.6, 0)
 
-    local existingBase = char:FindFirstChild("NoLegsCollision")
-    if not existingBase then
-        local collisionBase = Instance.new("Part")
-        collisionBase.Name = "NoLegsCollision"
-        collisionBase.Size = Vector3.new(2, 0.2, 1)
-        collisionBase.Transparency = 1
-        collisionBase.CanCollide = true
-        collisionBase.CanTouch = false
-        collisionBase.CanQuery = false
-        collisionBase.Massless = true
-        collisionBase.Parent = char
+    -- 3. Create a smooth collision base (cylinder to avoid edge snagging)
+    local collisionPart = char:FindFirstChild("NoLegsCollision")
+    if not collisionPart then
+        collisionPart = Instance.new("Part")
+        collisionPart.Name = "NoLegsCollision"
+        collisionPart.Size = Vector3.new(2, 0.2, 1)  -- same size you had
+        collisionPart.Shape = Enum.PartType.Cylinder   -- softer contact
+        collisionPart.Transparency = 1
+        collisionPart.CanCollide = true
+        collisionPart.CanTouch = false
+        collisionPart.CanQuery = false
+        collisionPart.Massless = true
 
+        -- 4. **CRUCIAL:** Weld it so the bottom sits exactly at the HipHeight plane
+        --    HipHeight = 0.4 → bottom at -0.4 below root
+        --    Part height = 0.2 → center offset = -0.4 + 0.1 = -0.3
         local weld = Instance.new("Weld")
         weld.Part0 = rootPart
-        weld.Part1 = collisionBase
-        weld.C0 = CFrame.new(0, -1.1, 0)
+        weld.Part1 = collisionPart
+        weld.C0 = CFrame.new(0, -0.3, 0)   -- CORRECTED OFFSET
         weld.Parent = rootPart
+
+        -- 5. Set physics to zero friction / zero bounce (prevents micro‑jitter)
+        local physProps = Instance.new("CustomPhysicalProperties")
+        physProps.Density = 0.01
+        physProps.Friction = 0
+        physProps.Elasticity = 0
+        physProps.FrictionWeight = 0
+        physProps.ElasticityWeight = 0
+        collisionPart.CustomPhysicalProperties = physProps
+
+        collisionPart.Parent = char
     end
 
-    humanoid.AutoRotate = true
+    -- 6. Disable automatic jumping (often adds upward spikes)
+    humanoid.AutoJumpEnabled = false
+    humanoid.JumpPower = 0
+    humanoid.UseJumpPower = false
+
+    -- 7. Let the humanoid settle naturally – no forced state change
     task.wait(0.05)
-    humanoid:ChangeState(Enum.HumanoidStateType.Running)
+    humanoid.PlatformStand = false
+    humanoid:Move(Vector3.new(0,0,0), false)
 end
 
 MiscWindow:AddToggle({
