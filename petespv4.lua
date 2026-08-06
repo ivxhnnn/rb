@@ -6,7 +6,6 @@
 -- ≥ 1B → Purple (255, 0, 255)
 
 
-
 -- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -22,15 +21,14 @@ local ESP_Config = {
     PanelWidth = 110,
     RowHeight = 18,
     RowPadding = 1,
-    MinMPS = 150000000, -- changed from 50M to 150M
-    -- OwnPetBoxColor is no longer used for owned pets (they are skipped entirely)
+    MinMPS = 150000000, -- only show pets ≥ 150M
     RowColors = {
         Color3.fromRGB(25, 50, 60)
     },
     LabelColor = Color3.fromRGB(100, 220, 160)
 }
 
--- New tier function with five thresholds
+-- ✅ NEW 5‑TIER COLOR FUNCTION (this is what you were missing)
 local function GetTierColor(NumMPS)
     if NumMPS >= 1000000000 then
         return Color3.fromRGB(255, 0, 255)   -- Purple for 1B+
@@ -43,7 +41,7 @@ local function GetTierColor(NumMPS)
     elseif NumMPS >= 150000000 then
         return Color3.fromRGB(0, 255, 0)     -- Green for 150M–199M
     else
-        return Color3.fromRGB(100, 100, 100) -- Fallback (won't be shown due to MinMPS)
+        return Color3.fromRGB(100, 100, 100) -- Fallback (won't show due to MinMPS)
     end
 end
 
@@ -101,7 +99,7 @@ local function DrawSquare(Color, Thickness, Filled, Transparency)
 end
 
 local function AddPetESP(PetModel)
-    -- Skip pets owned by the local player
+    -- Skip owned pets
     local OwnerId = PetModel:GetAttribute("OwnerUserId")
     if OwnerId == LocalPlayer.UserId then
         return
@@ -111,7 +109,8 @@ local function AddPetESP(PetModel)
 
     local ESP = {Corners = {}}
     for i = 1, 4 do
-        ESP.Corners[i] = DrawLine(ESP_Config.TierColors[1], ESP_Config.BoxThickness)
+        -- Use a default white color here – it will be updated every frame in the render loop
+        ESP.Corners[i] = DrawLine(Color3.new(1, 1, 1), ESP_Config.BoxThickness)
     end
     ESP.PanelBG = DrawSquare(Color3.fromRGB(12,12,18), 1, true, 0.35)
     ESP.PanelBorder = DrawSquare(Color3.fromRGB(80,80,120), 1, false, 0.7)
@@ -211,7 +210,6 @@ RunService.RenderStepped:Connect(function()
 
         local Species, Mutation, MPS, NumMPS = GetPetData(PetModel)
 
-        -- Skip if below the new minimum (150M)
         if NumMPS < ESP_Config.MinMPS then
             for _, Corner in ipairs(ESP.Corners) do Corner.Visible = false end
             ESP.PanelBG.Visible = false
@@ -224,6 +222,7 @@ RunService.RenderStepped:Connect(function()
             continue
         end
 
+        -- 🔥 Get the color based on the new 5‑tier system
         local TierColor = GetTierColor(NumMPS)
 
         local RootPart = PetModel:FindFirstChild("HumanoidRootPart") 
@@ -275,7 +274,7 @@ RunService.RenderStepped:Connect(function()
 
         ESP.PanelBorder.Position = ESP.PanelBG.Position
         ESP.PanelBorder.Size = ESP.PanelBG.Size
-        ESP.PanelBorder.Color = BoxColor 
+        ESP.PanelBorder.Color = BoxColor  -- border matches tier
         ESP.PanelBorder.Visible = true
 
         local InfoRows = {
@@ -299,7 +298,7 @@ RunService.RenderStepped:Connect(function()
 
             Row.Value.Text = Value
             Row.Value.Position = Vector2.new(PanelX + ESP_Config.PanelWidth/2 + 10, RowY + 1)
-            Row.Value.Color = TierColor
+            Row.Value.Color = TierColor  -- text matches tier
             Row.Value.Visible = true
 
             RowY += ESP_Config.RowHeight + ESP_Config.RowPadding
